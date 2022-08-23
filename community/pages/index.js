@@ -1,9 +1,35 @@
 import Head from 'next/head'
-import Image from 'next/image'
+import Link from 'next/link'
 import BaseLayout from '../components/BaseLayout'
-import styles from '../styles/Home.module.css'
+import db from '../net/db';
+import { collection, getDocs, orderBy, query, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { DateTime } from 'luxon';
 
 export default function Home() {
+  const [ list, setList ] = useState([]);
+  useEffect(()=>{
+    onSnapshot( query( collection( db, 'articles' ), orderBy( 'created_at', 'desc' ) ), results => {
+      const newList = [];
+        results.forEach( doc => {
+          const data = doc.data();
+          data.id = doc.id;
+          newList.push( data );
+        } );
+        setList( newList );
+    } )
+    // getDocs( query( collection( db, 'articles' ), orderBy( 'created_at', 'desc' ) ) )
+    //   .then( results => {
+    //     const newList = [];
+    //     results.forEach( doc => {
+    //       const data = doc.data();
+    //       data.id = doc.id;
+    //       newList.push( data );
+    //     } );
+    //     setList( newList );
+    //   } )
+  },[]);
+
   return (
     <BaseLayout>
       <Head>
@@ -12,59 +38,31 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+      <ul>
+        <li className='flex flex-row w-full border-b p-2 mb-4'>
+          <div className='flex-1 font-bold'>제목</div>
+          <div className='w-64 font-bold'>작성자</div>
+          <div className='w-64 font-bold'>작성일시</div>
+        </li>
+        {list.map( item => (
+          <li key={ item.id } className='flex flex-row w-full border-b p-2 mb-4'>
+            <div className='flex-1'>
+              <Link href={`/articles/${item.id}`}>
+                <a>{ item.subject }</a>
+              </Link>
+            </div>
+            <div className='w-64'>{ item.author }</div>
+            <div className='w-64'>{ DateTime.fromMillis( item.created_at ).toFormat( 'yyyy-LL-dd HH:mm:ss' ) }</div>
+          </li>
+        ))}
+      </ul>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
+      <div className='mt-8 w-full flex justify-end'>
+        <Link href="/create">
+          <button className="p-2 bg-black text-white">글쓰기</button>
+        </Link>
+      </div>
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </BaseLayout>
   )
 }
